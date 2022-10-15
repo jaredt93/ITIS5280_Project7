@@ -9,11 +9,11 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
-import com.group3.itis5280_project7.databinding.FragmentFirstBinding;
+import com.group3.itis5280_project7.databinding.FragmentControlBinding;
 
-public class FirstFragment extends Fragment {
+public class ControlFragment extends Fragment {
 
-    private FragmentFirstBinding binding;
+    private FragmentControlBinding binding;
 
     @Override
     public View onCreateView(
@@ -21,7 +21,7 @@ public class FirstFragment extends Fragment {
             Bundle savedInstanceState
     ) {
 
-        binding = FragmentFirstBinding.inflate(inflater, container, false);
+        binding = FragmentControlBinding.inflate(inflater, container, false);
         return binding.getRoot();
 
     }
@@ -29,13 +29,36 @@ public class FirstFragment extends Fragment {
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        binding.buttonFirst.setOnClickListener(new View.OnClickListener() {
+        binding.buttonDeviceSearch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                NavHostFragment.findNavController(FirstFragment.this)
+                NavHostFragment.findNavController(ControlFragment.this)
                         .navigate(R.id.action_FirstFragment_to_SecondFragment);
             }
         });
+        
+        binding.buttonLight.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                binding.buttonLight.setText("ON");
+
+            }
+        });
+
+
+        //binding.textViewTemp
+
+
+        binding.buttonBeep.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+
+
+            }
+        });
+
     }
 
     @Override
