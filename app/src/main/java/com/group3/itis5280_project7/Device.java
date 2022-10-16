@@ -1,17 +1,21 @@
 package com.group3.itis5280_project7;
 
+import android.bluetooth.BluetoothDevice;
+
 import java.util.Objects;
 
 public class Device {
     String name, uuid;
     Boolean connected;
+    BluetoothDevice device;
 
     public Device() {
         // empty
     }
 
-    public Device(String name) {
+    public Device(String name, BluetoothDevice device) {
         this.name = name;
+        this.device = device;
         uuid = "1";
         connected = false;
     }
@@ -44,6 +48,14 @@ public class Device {
 
     public void setConnected(Boolean connected) {
         this.connected = connected;
+    }
+
+    public BluetoothDevice getDevice() {
+        return device;
+    }
+
+    public void setDevice(BluetoothDevice device) {
+        this.device = device;
     }
 
     @Override

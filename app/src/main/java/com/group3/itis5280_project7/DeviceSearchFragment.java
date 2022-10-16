@@ -4,16 +4,22 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
+import android.content.ComponentName;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.ParcelUuid;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -34,6 +40,7 @@ import java.util.List;
 import java.util.UUID;
 
 public class DeviceSearchFragment extends Fragment implements DeviceRecyclerViewAdapter.IDeviceRecycler {
+    private static final int GATT_SUCCESS = 0x0000;
     private FragmentDeviceSearchBinding binding;
     BluetoothManager bluetoothManager;
     BluetoothAdapter bluetoothAdapter;
@@ -133,7 +140,6 @@ public class DeviceSearchFragment extends Fragment implements DeviceRecyclerView
         }
     }
 
-
     // Device scan callback.
     @SuppressLint("MissingPermission")
     private ScanCallback leScanCallback =
@@ -145,7 +151,7 @@ public class DeviceSearchFragment extends Fragment implements DeviceRecyclerView
                     //Log.d("Project7", "scan result" + result.getScanRecord().getServiceUuids());
 
                     BluetoothDevice bleDevice = result.getDevice();
-                    Device device = new Device(bleDevice.getName());
+                    Device device = new Device(bleDevice.getName(), bleDevice);
 
                     if (!devices.contains(device)) {
                         devices.add(device);
@@ -166,6 +172,32 @@ public class DeviceSearchFragment extends Fragment implements DeviceRecyclerView
                 }
             };
 
+
+
+    private final BluetoothGattCallback bluetoothGattCallback = new BluetoothGattCallback() {
+        @SuppressLint("MissingPermission")
+        @Override
+        public void onConnectionStateChange(final BluetoothGatt gatt, final int status, final int newState) {
+            if (status == GATT_SUCCESS) {
+                if (newState == BluetoothProfile.STATE_CONNECTED) {
+                    Log.d("Project7", "connected to GATT");
+
+                    // We successfully connected, proceed with service discovery
+                    gatt.discoverServices();
+                } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                    Log.d("Project7", "Disconnected to GATT");
+                    // We successfully disconnected on our own request
+                    gatt.close();
+                } else {
+                    // We're CONNECTING or DISCONNECTING, ignore for now
+                }
+            } else {
+                // An error happened...figure out what happened!
+                gatt.close();
+            }
+        }
+    };
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();
@@ -173,7 +205,11 @@ public class DeviceSearchFragment extends Fragment implements DeviceRecyclerView
     }
 
     @Override
+    @SuppressLint("MissingPermission")
     public void connectToDevice(Device device) {
+        Log.d("Project7", "connect to device" + device.getDevice().getAddress().toString());
+        BluetoothGatt gatt = device.getDevice().connectGatt(getActivity(), false, bluetoothGattCallback);
 
+        device.setConnected(true);
     }
 }
