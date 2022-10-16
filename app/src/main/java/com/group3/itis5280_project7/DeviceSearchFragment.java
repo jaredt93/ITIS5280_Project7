@@ -1,5 +1,7 @@
 package com.group3.itis5280_project7;
 
+import android.Manifest;
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
@@ -9,6 +11,7 @@ import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -17,16 +20,19 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.group3.itis5280_project7.databinding.FragmentDeviceSearchBinding;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class DeviceSearchFragment extends Fragment {
     private FragmentDeviceSearchBinding binding;
-    BluetoothAdapter adapter;
+    BluetoothManager bluetoothManager;
+    BluetoothAdapter bluetoothAdapter;
     BluetoothLeScanner scanner;
 
     @Override
@@ -35,100 +41,107 @@ public class DeviceSearchFragment extends Fragment {
             Bundle savedInstanceState
     ) {
         binding = FragmentDeviceSearchBinding.inflate(inflater, container, false);
-
-
-
-        adapter = BluetoothAdapter.getDefaultAdapter();
-        scanner = adapter.getBluetoothLeScanner();
-
-        if (!adapter.isEnabled()) {
-            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableBtIntent, 001);
-        }
-
-
-        List<ScanFilter> filters = null;
-        ScanSettings scanSettings = null;
-
-
-//        if (scanner != null) {
-//            //scanner.startScan(filters, scanSettings, scanCallback);
-//            scanner.startScan(scanCallback);
-//            Log.d("Project7", "scan started");
-//        }  else {
-//            Log.d("Project7", "could not get scanner object");
-//        }
-
-
+        bluetoothManager = getActivity().getSystemService(BluetoothManager.class);
+        bluetoothAdapter = bluetoothManager.getAdapter();
+        scanner = bluetoothAdapter.getBluetoothLeScanner();
         return binding.getRoot();
     }
 
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        if (scanner != null) {
+            //scanner.startScan(filters, scanSettings, scanCallback);
+            if (ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+            } else {
+                //scanner.startScan(null, scanSettings, scanCallback);
 
+                scanLeDevice();
+                Log.d("Project7", "scan started");
+            }
+        }  else {
+            Log.d("Project7", "could not get scanner object");
+        }
 
-
-//        BluetoothManager bluetoothManager = getSystemService(BluetoothManager.class);
-//        BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
-//        if (bluetoothAdapter == null) {
-//            // Device doesn't support Bluetooth
-//        }
-//
-//        if (!bluetoothAdapter.isEnabled()) {
-//            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-//            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-//        }
-//
-//
-//
-//        private BluetoothLeScanner bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
-//        private boolean scanning;
-//        private Handler handler = new Handler();
-//
-//        // Stops scanning after 10 seconds.
-//        private static final long SCAN_PERIOD = 10000;
-//
-//        private void scanLeDevice() {
-//            if (!scanning) {
-//                // Stops scanning after a predefined scan period.
-//                handler.postDelayed(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        scanning = false;
-//                        bluetoothLeScanner.stopScan(leScanCallback);
-//                    }
-//                }, SCAN_PERIOD);
-//
-//                scanning = true;
-//                bluetoothLeScanner.startScan(leScanCallback);
-//            } else {
-//                scanning = false;
-//                bluetoothLeScanner.stopScan(leScanCallback);
-//            }
-//        }
 
 
 
 
     }
 
-    private final ScanCallback scanCallback = new ScanCallback() {
-        @Override
-        public void onScanResult(int callbackType, ScanResult result) {
-            BluetoothDevice device = result.getDevice();        // ...do whatever you want with this found device
+    private boolean scanning;
+    private Handler handler = new Handler();
+
+    // Stops scanning after 10 seconds.
+    private static final long SCAN_PERIOD = 10000;
+
+    @SuppressLint("MissingPermission")
+    private void scanLeDevice() {
+        String[] names = new String[]{"Smart Bulb"};
+        List<ScanFilter> filters = null;
+
+        if(names != null) {
+            filters = new ArrayList<>();
+            for (String name : names) {
+                ScanFilter filter = new ScanFilter.Builder()
+                        .setDeviceName(name)
+                        .build();
+                filters.add(filter);
+            }
         }
 
-        @Override
-        public void onBatchScanResults(List<ScanResult> results) {
-            // Ignore for now
-        }
+        ScanSettings scanSettings = new ScanSettings.Builder()
+                .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
+                .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
+                .setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE)
+                .setNumOfMatches(ScanSettings.MATCH_NUM_ONE_ADVERTISEMENT)
+                .setReportDelay(0L)
+                .build();
 
-        @Override
-        public void onScanFailed(int errorCode) {
-            // Ignore for now
+        if (!scanning) {
+            // Stops scanning after a predefined scan period.
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    scanning = false;
+                    scanner.stopScan(leScanCallback);
+                }
+            }, SCAN_PERIOD);
+
+            scanning = true;
+            Log.d("Project7", "scan start here");
+            scanner.startScan(filters, scanSettings, leScanCallback);
+        } else {
+            scanning = false;
+            scanner.stopScan(leScanCallback);
         }
-    };
+    }
+
+    //private LeDeviceListAdapter leDeviceListAdapter = new LeDeviceListAdapter();
+
+    // Device scan callback.
+    private ScanCallback leScanCallback =
+            new ScanCallback() {
+                @Override
+                public void onScanResult(int callbackType, ScanResult result) {
+                    super.onScanResult(callbackType, result);
+                    Log.d("Project7", "scan result");
+                    //leDeviceListAdapter.addDevice(result.getDevice());
+                    //leDeviceListAdapter.notifyDataSetChanged();
+                }
+
+                @Override
+                public void onBatchScanResults(List<ScanResult> results) {
+                    Log.d("Project7", "scan batch");
+                }
+
+                @Override
+                public void onScanFailed(int errorCode) {
+                    // Ignore for now
+                    Log.d("Project7", "scan fail" + errorCode);
+                }
+            };
+
 
     @Override
     public void onDestroyView() {
