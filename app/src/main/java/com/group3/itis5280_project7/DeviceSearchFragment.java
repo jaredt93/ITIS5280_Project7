@@ -14,6 +14,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.ParcelUuid;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -23,17 +24,24 @@ import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
+import androidx.recyclerview.widget.DividerItemDecoration;
+import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.group3.itis5280_project7.databinding.FragmentDeviceSearchBinding;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
-public class DeviceSearchFragment extends Fragment {
+public class DeviceSearchFragment extends Fragment implements DeviceRecyclerViewAdapter.IDeviceRecycler {
     private FragmentDeviceSearchBinding binding;
     BluetoothManager bluetoothManager;
     BluetoothAdapter bluetoothAdapter;
     BluetoothLeScanner scanner;
+
+    ArrayList<Device> devices = new ArrayList<>();
+    LinearLayoutManager layoutManager;
+    DeviceRecyclerViewAdapter adapter;
 
     @Override
     public View onCreateView(
@@ -44,6 +52,16 @@ public class DeviceSearchFragment extends Fragment {
         bluetoothManager = getActivity().getSystemService(BluetoothManager.class);
         bluetoothAdapter = bluetoothManager.getAdapter();
         scanner = bluetoothAdapter.getBluetoothLeScanner();
+
+        layoutManager = new LinearLayoutManager(getContext());
+        binding.recyclerView.setLayoutManager(layoutManager);
+
+        DividerItemDecoration mDividerItemDecoration = new DividerItemDecoration(binding.recyclerView.getContext(), layoutManager.getOrientation());
+        binding.recyclerView.addItemDecoration(mDividerItemDecoration);
+
+        adapter = new DeviceRecyclerViewAdapter(devices, this);
+        binding.recyclerView.setAdapter(adapter);
+
         return binding.getRoot();
     }
 
@@ -54,19 +72,12 @@ public class DeviceSearchFragment extends Fragment {
             //scanner.startScan(filters, scanSettings, scanCallback);
             if (ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
             } else {
-                //scanner.startScan(null, scanSettings, scanCallback);
-
                 scanLeDevice();
                 Log.d("Project7", "scan started");
             }
         }  else {
             Log.d("Project7", "could not get scanner object");
         }
-
-
-
-
-
     }
 
     private boolean scanning;
@@ -77,16 +88,21 @@ public class DeviceSearchFragment extends Fragment {
 
     @SuppressLint("MissingPermission")
     private void scanLeDevice() {
-        String[] names = new String[]{"Smart Bulb"};
+        UUID JARED_GOOGLE_PIXEL = UUID.fromString("df70f520-08df-5711-c1ba-826883fbf944");
+        UUID JARED_NEXUS = UUID.fromString("df8d4ea1-38b6-fd8e-aeaf-30041f48400d");
+        UUID[] serviceUUIDs = new UUID[]{ JARED_GOOGLE_PIXEL, JARED_NEXUS };
+
         List<ScanFilter> filters = null;
 
-        if(names != null) {
+        if(serviceUUIDs != null) {
             filters = new ArrayList<>();
-            for (String name : names) {
+            for (UUID serviceUUID : serviceUUIDs) {
                 ScanFilter filter = new ScanFilter.Builder()
-                        .setDeviceName(name)
+                        //.setServiceUuid(new ParcelUuid(serviceUUID))
+                        .setDeviceName("Smart Bulb")
                         .build();
                 filters.add(filter);
+                Log.d("Project7", "scanLeDevice: " + filters.toString());
             }
         }
 
@@ -117,17 +133,25 @@ public class DeviceSearchFragment extends Fragment {
         }
     }
 
-    //private LeDeviceListAdapter leDeviceListAdapter = new LeDeviceListAdapter();
 
     // Device scan callback.
+    @SuppressLint("MissingPermission")
     private ScanCallback leScanCallback =
             new ScanCallback() {
                 @Override
                 public void onScanResult(int callbackType, ScanResult result) {
                     super.onScanResult(callbackType, result);
-                    Log.d("Project7", "scan result");
-                    //leDeviceListAdapter.addDevice(result.getDevice());
-                    //leDeviceListAdapter.notifyDataSetChanged();
+                    Log.d("Project7", "scan result" + result.getDevice().getName());
+                    //Log.d("Project7", "scan result" + result.getScanRecord().getServiceUuids());
+
+                    BluetoothDevice bleDevice = result.getDevice();
+                    Device device = new Device(bleDevice.getName());
+
+                    if (!devices.contains(device)) {
+                        devices.add(device);
+                    }
+
+                    adapter.notifyDataSetChanged();
                 }
 
                 @Override
@@ -142,11 +166,14 @@ public class DeviceSearchFragment extends Fragment {
                 }
             };
 
-
     @Override
     public void onDestroyView() {
         super.onDestroyView();
         binding = null;
     }
 
+    @Override
+    public void connectToDevice(Device device) {
+
+    }
 }
