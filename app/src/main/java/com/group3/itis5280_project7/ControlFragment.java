@@ -1,24 +1,55 @@
 package com.group3.itis5280_project7;
 
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothManager;
-import android.content.Intent;
+import static android.bluetooth.BluetoothGattCharacteristic.PERMISSION_READ;
+import static android.bluetooth.BluetoothGattCharacteristic.PROPERTY_READ;
+
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.content.Context;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.navigation.fragment.NavHostFragment;
 
 import com.group3.itis5280_project7.databinding.FragmentControlBinding;
 
+import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.UUID;
+
 public class ControlFragment extends Fragment {
     private FragmentControlBinding binding;
-    BluetoothManager bluetoothManager;
-    BluetoothAdapter bluetoothAdapter;
+    Device device = null;
+    private static final String DEVICE = "DEVICE";
+
+    public ControlFragment() {
+        // Required empty public constructor
+    }
+
+    public static ControlFragment newInstance(Device device) {
+        ControlFragment fragment = new ControlFragment();
+        Bundle args = new Bundle();
+        args.putSerializable(DEVICE, device);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        if (getArguments() != null) {
+            this.device = (Device) getArguments().getSerializable(DEVICE);
+//            if(this.order == null) {
+//                this.order = new Order();
+//            }
+        }
+    }
 
     @Override
     public View onCreateView(
@@ -26,10 +57,7 @@ public class ControlFragment extends Fragment {
             Bundle savedInstanceState
     ) {
         binding = FragmentControlBinding.inflate(inflater, container, false);
-
-        bluetoothManager = getActivity().getSystemService(BluetoothManager.class);
-        bluetoothAdapter = bluetoothManager.getAdapter();
-
+        getActivity().setTitle("Light Temp Beep");
         return binding.getRoot();
     }
 
@@ -39,58 +67,69 @@ public class ControlFragment extends Fragment {
         binding.buttonDeviceSearch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (bluetoothAdapter == null) {
-                    Toast.makeText(getActivity(), "Bluetooth not supported!", Toast.LENGTH_LONG).show();
-                } else {
-                    if (!bluetoothAdapter.isEnabled()) {
-                        Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                        startActivityForResult(enableBtIntent, 001);
-                    } else {
-                        NavHostFragment.findNavController(ControlFragment.this)
-                                .navigate(R.id.action_FirstFragment_to_SecondFragment);
-                    }
+                mListener.searchDevices();
+            }
+        });
+
+        if (device != null) {
+            binding.textViewFindDevice.setText("Connected");
+
+            binding.buttonLight.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    binding.buttonLight.setText("ON");
                 }
-            }
-        });
-        
-        binding.buttonLight.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-
-                binding.buttonLight.setText("ON");
-
-            }
-        });
+            });
 
 
-        //binding.textViewTemp
+            binding.textViewTemp.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    BluetoothGattCharacteristic characteristic = new BluetoothGattCharacteristic(UUID.fromString("0ced9345-b31f-457d-a6a2-b3db9b03e39a"), BluetoothGattCharacteristic.PROPERTY_READ | BluetoothGattCharacteristic.PROPERTY_NOTIFY, BluetoothGattCharacteristic.PERMISSION_READ);
+                    mListener.readTempCharacteristic(characteristic);
+                }
+            });
 
+//            new Timer().scheduleAtFixedRate(new TimerTask() {
+//                @Override
+//                public void run() {
+//                    Log.d("Project7", "run");
+//                    BluetoothGattCharacteristic characteristic = new BluetoothGattCharacteristic(UUID.fromString("FB959362-F26E-43A9-927C-7E17D8FB2D8D"), BluetoothGattCharacteristic.PROPERTY_READ | BluetoothGattCharacteristic.PROPERTY_NOTIFY,
+//                            BluetoothGattCharacteristic.PERMISSION_READ);
+//                    //mListener.readTempCharacteristic(characteristic);
+//                }
+//            }, 0, 10000);//put here time 1000 milliseconds=1 second
 
-        binding.buttonBeep.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
+            //binding.textViewTemp.setText(device.g + "°F");
 
+            binding.buttonBeep.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
 
-
-            }
-        });
-
-    }
-
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 001) {
-            if (resultCode == -1) {
-                NavHostFragment.findNavController(ControlFragment.this)
-                        .navigate(R.id.action_FirstFragment_to_SecondFragment);
-            }
+                }
+            });
+        } else {
+            binding.textViewFindDevice.setText("Not Connected");
         }
+
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
         binding = null;
+    }
+
+    IListener mListener;
+
+    @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+        mListener = (IListener) context;
+    }
+
+    public interface IListener {
+        void searchDevices();
+        void readTempCharacteristic(BluetoothGattCharacteristic characteristic);
     }
 }
