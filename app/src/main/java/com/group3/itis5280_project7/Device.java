@@ -2,11 +2,12 @@ package com.group3.itis5280_project7;
 
 import android.bluetooth.BluetoothDevice;
 
+import java.io.Serializable;
 import java.util.Objects;
 
-public class Device {
-    String name, uuid;
-    Boolean connected;
+public class Device implements Serializable {
+    String name, uuid, temperature;
+    Boolean connected, lightOn, beepOn;
     BluetoothDevice device;
 
     public Device() {
@@ -56,6 +57,30 @@ public class Device {
 
     public void setDevice(BluetoothDevice device) {
         this.device = device;
+    }
+
+    public String getTemperature() {
+        return temperature;
+    }
+
+    public void setTemperature(String temperature) {
+        this.temperature = temperature;
+    }
+
+    public Boolean getLightOn() {
+        return lightOn;
+    }
+
+    public void setLightOn(Boolean lightOn) {
+        this.lightOn = lightOn;
+    }
+
+    public Boolean getBeepOn() {
+        return beepOn;
+    }
+
+    public void setBeepOn(Boolean beepOn) {
+        this.beepOn = beepOn;
     }
 
     @Override
