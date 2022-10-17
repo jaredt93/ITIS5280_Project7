@@ -81,26 +81,11 @@ public class ControlFragment extends Fragment {
                 }
             });
 
-
-            binding.textViewTemp.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    BluetoothGattCharacteristic characteristic = new BluetoothGattCharacteristic(UUID.fromString("0ced9345-b31f-457d-a6a2-b3db9b03e39a"), BluetoothGattCharacteristic.PROPERTY_READ | BluetoothGattCharacteristic.PROPERTY_NOTIFY, BluetoothGattCharacteristic.PERMISSION_READ);
-                    mListener.readTempCharacteristic(characteristic);
-                }
-            });
-
-//            new Timer().scheduleAtFixedRate(new TimerTask() {
-//                @Override
-//                public void run() {
-//                    Log.d("Project7", "run");
-//                    BluetoothGattCharacteristic characteristic = new BluetoothGattCharacteristic(UUID.fromString("FB959362-F26E-43A9-927C-7E17D8FB2D8D"), BluetoothGattCharacteristic.PROPERTY_READ | BluetoothGattCharacteristic.PROPERTY_NOTIFY,
-//                            BluetoothGattCharacteristic.PERMISSION_READ);
-//                    //mListener.readTempCharacteristic(characteristic);
-//                }
-//            }, 0, 10000);//put here time 1000 milliseconds=1 second
-
-            //binding.textViewTemp.setText(device.g + "°F");
+            if (device.getTemperature() == null) {
+                binding.textViewTemp.setText("Loading...");
+            } else {
+                binding.textViewTemp.setText(device.getTemperature() + "°F");
+            }
 
             binding.buttonBeep.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -130,6 +115,7 @@ public class ControlFragment extends Fragment {
 
     public interface IListener {
         void searchDevices();
-        void readTempCharacteristic(BluetoothGattCharacteristic characteristic);
+        void pressBulbButton();
+        void pressBeepButton();
     }
 }

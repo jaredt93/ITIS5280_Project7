@@ -18,48 +18,24 @@ import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
-import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-
-import com.google.android.material.snackbar.Snackbar;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Handler;
-import android.os.IBinder;
 import android.util.Log;
-import android.view.View;
 
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
-import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
-import androidx.navigation.fragment.NavHostFragment;
-import androidx.navigation.ui.AppBarConfiguration;
-import androidx.navigation.ui.NavigationUI;
 
 import com.group3.itis5280_project7.databinding.ActivityMainBinding;
-
-import android.view.Menu;
-import android.view.MenuItem;
 import android.widget.Toast;
-
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
-import java.util.Queue;
 import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity implements ControlFragment.IListener, DeviceSearchFragment.IListener {
@@ -108,8 +84,6 @@ public class MainActivity extends AppCompatActivity implements ControlFragment.I
                 .commit();
     }
 
-
-
     // Bluetooth Permissions
     private static final String[] BLE_PERMISSIONS = new String[]{
             Manifest.permission.ACCESS_COARSE_LOCATION,
@@ -129,9 +103,6 @@ public class MainActivity extends AppCompatActivity implements ControlFragment.I
             ActivityCompat.requestPermissions(activity, BLE_PERMISSIONS, requestCode);
     }
 
-
-
-
     @SuppressLint("MissingPermission")
     @Override
     public void searchDevices() {
@@ -147,6 +118,15 @@ public class MainActivity extends AppCompatActivity implements ControlFragment.I
         }
     }
 
+    @Override
+    public void pressBulbButton() {
+
+    }
+
+    @Override
+    public void pressBeepButton() {
+
+    }
 
     // Blueooth intent permissions response
     @Override
@@ -158,8 +138,6 @@ public class MainActivity extends AppCompatActivity implements ControlFragment.I
             }
         }
     }
-
-
 
     // SCANNING
     private boolean scanning;
@@ -246,8 +224,6 @@ public class MainActivity extends AppCompatActivity implements ControlFragment.I
                 }
             };
 
-
-
     // CONNECT TO DEVICE
     @SuppressLint("MissingPermission")
     @Override
@@ -264,8 +240,6 @@ public class MainActivity extends AppCompatActivity implements ControlFragment.I
     public void gotoControl() {
         replaceFragment(new ControlFragment());
     }
-
-
 
     // BLUETOOTH GATT CALLBACKS
     private static final int GATT_SUCCESS = 0x0000;
@@ -330,190 +304,47 @@ public class MainActivity extends AppCompatActivity implements ControlFragment.I
                 final int temp = characteristic.getIntValue(format, 1);
                 Log.d(TAG, String.format("Received ", temp));
 
-
                 //replaceFragment(ControlFragment.newInstance(connectedDevice));
             } else {
                 Log.d(TAG, "Not read");
             }
         }
+
+        @Override
+        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+            super.onCharacteristicChanged(gatt, characteristic);
+
+            if(characteristic.getUuid().toString().equals("0ced9345-b31f-457d-a6a2-b3db9b03e39a")){
+                byte[] value = characteristic.getValue();
+                String str = new String(value);
+                Log.d(TAG, "onCharacteristicChanged: " + str );
+                connectedDevice.setTemperature(str);
+                replaceFragment(ControlFragment.newInstance(connectedDevice));
+            }
+        }
+
+        @Override
+        public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+            super.onCharacteristicWrite(gatt, characteristic, status);
+
+
+        }
     };
 
+    BluetoothGattCharacteristic tempChar, bulbChar, beepChar;
+
     @SuppressLint("MissingPermission")
-    @Override
-    public void readTempCharacteristic(BluetoothGattCharacteristic characteristic) {
-        Log.d(TAG, "trying to read characteristic");
-        if (bluetoothAdapter == null || gatt == null) {
-            Log.d(TAG, "BluetoothAdapter not initialized");
-            return;
-        }
-        /*check if the service is available on the device*/
-        BluetoothGattService mCustomService = gatt.getService(UUID.fromString("df8d4ea1-38b6-fd8e-aeaf-30041f48400d"));
-        if(mCustomService == null){
-            Log.w(TAG, "Custom BLE Service not found");
-            return;
-        }
-        /*get the read characteristic from the service*/
-        BluetoothGattCharacteristic mReadCharacteristic = mCustomService.getCharacteristic(UUID.fromString("fb959362-f26e-43a9-927c-7e17d8fb2d8d"));
-
-        Log.d(TAG, "trying to read characteristic" + mReadCharacteristic.getPermissions());
-        if(gatt.readCharacteristic(mReadCharacteristic) == false){
-            Log.d(TAG, "Failed to read characteristic");
-        }
-
-        gatt.readCharacteristic(mReadCharacteristic);
-    }
-
     private void displayGattServices(List<BluetoothGattService> gattServices) {
         if (gattServices == null) return;
-        String uuid = null;
-//        String unknownServiceString = getResources().
-//                getString(R.string.unknown_service);
-//        String unknownCharaString = getResources().
-//                getString(R.string.unknown_characteristic);
-        ArrayList<HashMap<String, String>> gattServiceData =
-                new ArrayList<HashMap<String, String>>();
-        ArrayList<ArrayList<HashMap<String, String>>> gattCharacteristicData
-                = new ArrayList<ArrayList<HashMap<String, String>>>();
-        ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristics =
-                new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
 
-        // Loops through available GATT Services.
         for (BluetoothGattService gattService : gattServices) {
-            HashMap<String, String> currentServiceData =
-                    new HashMap<String, String>();
-            uuid = gattService.getUuid().toString();
-            Log.d(TAG, "displayGattServices: uuid " + uuid);
-//            currentServiceData.put(
-//                    LIST_NAME, SampleGattAttributes.
-//                            lookup(uuid, unknownServiceString));
-//            currentServiceData.put(LIST_UUID, uuid);
-            gattServiceData.add(currentServiceData);
-
-            ArrayList<HashMap<String, String>> gattCharacteristicGroupData =
-                    new ArrayList<HashMap<String, String>>();
-            List<BluetoothGattCharacteristic> gattCharacteristics =
-                    gattService.getCharacteristics();
-            ArrayList<BluetoothGattCharacteristic> charas =
-                    new ArrayList<BluetoothGattCharacteristic>();
-            // Loops through available Characteristics.
-            for (BluetoothGattCharacteristic gattCharacteristic :
-                    gattCharacteristics) {
-                charas.add(gattCharacteristic);
-                HashMap<String, String> currentCharaData =
-                        new HashMap<String, String>();
-                uuid = gattCharacteristic.getUuid().toString();
-                Log.d(TAG, "displayGattCharacteristics: uuid " + uuid);
-//                currentCharaData.put(
-//                        LIST_NAME, SampleGattAttributes.lookup(uuid,
-//                                unknownCharaString));
-                currentCharaData.put("", uuid);
-                gattCharacteristicGroupData.add(currentCharaData);
+            for (BluetoothGattCharacteristic characteristic: gattService.getCharacteristics()) {
+                Log.d(TAG, "displayGattServices: " + characteristic.getUuid().toString());
+                if(characteristic.getUuid().toString().equals("0ced9345-b31f-457d-a6a2-b3db9b03e39a")){
+                    tempChar = characteristic;
+                    gatt.setCharacteristicNotification(tempChar, true);
+                }
             }
-            mGattCharacteristics.add(charas);
-            gattCharacteristicData.add(gattCharacteristicGroupData);
-            Log.d(TAG, "displayGattServices: " + mGattCharacteristics);
         }
     }
-
-
-    //private Queue<Runnable> commandQueue;
-    //private boolean commandQueueBusy;
-
-//    public boolean readCharacteristic(final BluetoothGattCharacteristic characteristic) {
-//        if(gatt == null) {
-//            Log.d("Project7", "ERROR: Gatt is 'null', ignoring read request");
-//            return false;
-//        }
-//
-//        // Check if characteristic is valid
-//        if(characteristic == null) {
-//            Log.d(TAG, "ERROR: Characteristic is 'null', ignoring read request");
-//            return false;
-//        }
-//
-//        // Check if this characteristic actually has READ property
-//        if((characteristic.getProperties() & PROPERTY_READ) == 0 ) {
-//            Log.d(TAG, "ERROR: Characteristic cannot be read");
-//            return false;
-//        }
-//
-//        // Enqueue the read command now that all checks have been passed
-//        boolean result = commandQueue.add(new Runnable() {
-//            @SuppressLint("MissingPermission")
-//            @Override
-//            public void run() {
-//                if(!gatt.readCharacteristic(characteristic)) {
-//                    Log.d(TAG, String.format("ERROR: readCharacteristic failed for characteristic: %s", characteristic.getUuid()));
-//                    completedCommand();
-//                } else {
-//                    Log.d(TAG, String.format("reading characteristic <%s>", characteristic.getUuid()));
-//                    //nrTries++;
-//                }
-//            }
-//        });
-//
-//        if(result) {
-//            nextCommand();
-//        } else {
-//            Log.e(TAG, "ERROR: Could not enqueue read characteristic command");
-//        }
-//        return result;
-//    }
-
-//    private void nextCommand() {
-//        // If there is still a command being executed then bail out
-//        if(commandQueueBusy) {
-//            return;
-//        }
-//
-//        // Check if we still have a valid gatt object
-//        if (gatt == null) {
-//            Log.e(TAG, String.format("ERROR: GATT is 'null' for peripheral '%s', clearing command queue"));
-//            commandQueue.clear();
-//            commandQueueBusy = false;
-//            return;
-//        }
-//
-//        // Execute the next command in the queue
-//        if (commandQueue.size() > 0) {
-//            final Runnable bluetoothCommand = commandQueue.peek();
-//            commandQueueBusy = true;
-//            //nrTries = 0;
-//
-//            handler.post(new Runnable() {
-//                @Override
-//                public void run() {
-//                    try {
-//                        bluetoothCommand.run();
-//                    } catch (Exception ex) {
-//
-//                    }
-//                }
-//            });
-//        }
-//    }
-
-
-//    public void onCharacteristicRead(BluetoothGatt gatt, final BluetoothGattCharacteristic characteristic, int status) {
-//        // Perform some checks on the status field
-//        if (status != GATT_SUCCESS) {
-//            Log.e(TAG, String.format(Locale.ENGLISH,"ERROR: Read failed for characteristic: %s, status %d", characteristic.getUuid(), status));
-//            completedCommand();
-//            return;
-//        }
-//
-//        // Characteristic has been read so processes it
-//
-//
-//
-//        completedCommand();
-//    }
-//
-//    private void completedCommand() {
-//        commandQueueBusy = false;
-//        //isRetrying = false;
-//        commandQueue.poll();
-//        nextCommand();
-//    }
-
 }
