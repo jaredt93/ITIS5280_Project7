@@ -1,7 +1,5 @@
 package com.group3.itis5280_project7;
 
-import static android.bluetooth.BluetoothGattCharacteristic.PROPERTY_READ;
-
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -34,6 +32,8 @@ import androidx.fragment.app.FragmentTransaction;
 
 import com.group3.itis5280_project7.databinding.ActivityMainBinding;
 import android.widget.Toast;
+
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -50,6 +50,7 @@ public class MainActivity extends AppCompatActivity implements ControlFragment.I
     ArrayList<Device> devices = new ArrayList<>();
     Device connectedDevice;
 
+    @SuppressLint("MissingPermission")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -118,14 +119,35 @@ public class MainActivity extends AppCompatActivity implements ControlFragment.I
         }
     }
 
+    @SuppressLint("MissingPermission")
     @Override
     public void pressBulbButton() {
+        byte[] on = "1".getBytes(StandardCharsets.UTF_8);
+        byte[] off = "0".getBytes(StandardCharsets.UTF_8);
 
+        if (connectedDevice.getLightOn()) {
+            bulbChar.setValue("0");
+        } else {
+            bulbChar.setValue("0");
+        }
+
+        gatt.writeCharacteristic(bulbChar);
     }
 
+    @SuppressLint("MissingPermission")
     @Override
     public void pressBeepButton() {
+        byte[] on = "1".getBytes(StandardCharsets.UTF_8);
+        byte[] off = "0".getBytes(StandardCharsets.UTF_8);
 
+        Log.d(TAG, "CONNECTED DEVICE: " + connectedDevice.getBeepOn());
+        if (connectedDevice.getBeepOn()) {
+            beepChar.setValue(off);
+        } else {
+            beepChar.setValue(on);
+        }
+
+        gatt.writeCharacteristic(beepChar);
     }
 
     // Blueooth intent permissions response
@@ -148,23 +170,28 @@ public class MainActivity extends AppCompatActivity implements ControlFragment.I
 
     @SuppressLint("MissingPermission")
     private void scanLeDevice() {
-        UUID JARED_GOOGLE_PIXEL = UUID.fromString("df70f520-08df-5711-c1ba-826883fbf944");
-        UUID JARED_NEXUS = UUID.fromString("df8d4ea1-38b6-fd8e-aeaf-30041f48400d");
-        UUID[] serviceUUIDs = new UUID[]{ JARED_GOOGLE_PIXEL, JARED_NEXUS };
+//        UUID JARED_GOOGLE_PIXEL = UUID.fromString("df70f520-08df-5711-c1ba-826883fbf944");
+//        UUID JARED_NEXUS = UUID.fromString("df8d4ea1-38b6-fd8e-aeaf-30041f48400d");
+//        UUID[] serviceUUIDs = new UUID[]{ JARED_GOOGLE_PIXEL, JARED_NEXUS };
+
+//        if(serviceUUIDs != null) {
+//            filters = new ArrayList<>();
+//            for (UUID serviceUUID : serviceUUIDs) {
+//                ScanFilter filter = new ScanFilter.Builder()
+//                        //.setServiceUuid(new ParcelUuid(serviceUUID))
+//                        .setDeviceName("Smart Bulb")
+//                        .build();
+//                filters.add(filter);
+//                Log.d("Project7", "scanLeDevice: " + filters.toString());
+//            }
+//        }
 
         List<ScanFilter> filters = null;
-
-        if(serviceUUIDs != null) {
-            filters = new ArrayList<>();
-            for (UUID serviceUUID : serviceUUIDs) {
-                ScanFilter filter = new ScanFilter.Builder()
-                        //.setServiceUuid(new ParcelUuid(serviceUUID))
-                        .setDeviceName("Smart Bulb")
-                        .build();
-                filters.add(filter);
-                Log.d("Project7", "scanLeDevice: " + filters.toString());
-            }
-        }
+        filters = new ArrayList<>();
+        ScanFilter filter = new ScanFilter.Builder()
+                .setDeviceName("Smart Bulb")
+                .build();
+        filters.add(filter);
 
         ScanSettings scanSettings = new ScanSettings.Builder()
                 .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
@@ -201,26 +228,14 @@ public class MainActivity extends AppCompatActivity implements ControlFragment.I
                 public void onScanResult(int callbackType, ScanResult result) {
                     super.onScanResult(callbackType, result);
                     Log.d("Project7", "scan result" + result.getDevice().getName());
-                    //Log.d("Project7", "scan result" + result.getScanRecord().getServiceUuids());
 
                     BluetoothDevice bleDevice = result.getDevice();
-                    Device device = new Device(bleDevice.getName(), bleDevice);
+                    Device device = new Device(bleDevice.getName(), bleDevice.getAddress(), bleDevice);
 
                     if (!devices.contains(device)) {
                         devices.add(device);
                         replaceFragment(DeviceSearchFragment.newInstance(devices));
                     }
-                }
-
-                @Override
-                public void onBatchScanResults(List<ScanResult> results) {
-                    Log.d("Project7", "scan batch");
-                }
-
-                @Override
-                public void onScanFailed(int errorCode) {
-                    // Ignore for now
-                    Log.d("Project7", "scan fail" + errorCode);
                 }
             };
 
@@ -260,6 +275,7 @@ public class MainActivity extends AppCompatActivity implements ControlFragment.I
                     connectedDevice.setConnected(false);
                     connectedDevice = null;
                     gatt.close();
+
                 } else {
                     // We're CONNECTING or DISCONNECTING, ignore for now
                     Log.d("Project7", "else");
@@ -314,12 +330,22 @@ public class MainActivity extends AppCompatActivity implements ControlFragment.I
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
             super.onCharacteristicChanged(gatt, characteristic);
 
-            if(characteristic.getUuid().toString().equals("0ced9345-b31f-457d-a6a2-b3db9b03e39a")){
+            if (characteristic.getUuid().toString().equals("0ced9345-b31f-457d-a6a2-b3db9b03e39a")){
                 byte[] value = characteristic.getValue();
                 String str = new String(value);
-                Log.d(TAG, "onCharacteristicChanged: " + str );
+                Log.d(TAG, "onCharacteristicChanged: temp " + str );
                 connectedDevice.setTemperature(str);
                 replaceFragment(ControlFragment.newInstance(connectedDevice));
+            } else if (characteristic.getUuid().toString().equals("ec958823-f26e-43a9-927c-7e17d8f32a90")) {
+                byte[] value = characteristic.getValue();
+                String str = new String(value);
+                Log.d(TAG, "onCharacteristicChanged: BEEP " + str );
+
+                if(str.equals("1")) {
+                    connectedDevice.setBeepOn(true);
+                } else {
+                    connectedDevice.setBeepOn(false);
+                }
             }
         }
 
@@ -327,7 +353,29 @@ public class MainActivity extends AppCompatActivity implements ControlFragment.I
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
             super.onCharacteristicWrite(gatt, characteristic, status);
 
+            if (characteristic.getUuid().toString().equals("fb959362-f26e-43a9-927c-7e17d8fb2d8d")) {
+                byte[] value = characteristic.getValue();
+                String str = new String(value);
+                Log.d(TAG, "onCharacteristicWrite: bulb " + str );
 
+                if(str.equals("1")) {
+                    connectedDevice.setLightOn(true);
+                    replaceFragment(ControlFragment.newInstance(connectedDevice));
+                } else {
+                    connectedDevice.setLightOn(false);
+                    replaceFragment(ControlFragment.newInstance(connectedDevice));
+                }
+            } else if (characteristic.getUuid().toString().equals("ec958823-f26e-43a9-927c-7e17d8f32a90")) {
+                byte[] value = characteristic.getValue();
+                String str = new String(value);
+                Log.d(TAG, "onCharacteristicWrite: BEEP " + str );
+
+                if(str.equals("1")) {
+                    connectedDevice.setBeepOn(true);
+                } else {
+                    connectedDevice.setBeepOn(false);
+                }
+            }
         }
     };
 
@@ -343,6 +391,10 @@ public class MainActivity extends AppCompatActivity implements ControlFragment.I
                 if(characteristic.getUuid().toString().equals("0ced9345-b31f-457d-a6a2-b3db9b03e39a")){
                     tempChar = characteristic;
                     gatt.setCharacteristicNotification(tempChar, true);
+                } else if(characteristic.getUuid().toString().equals("fb959362-f26e-43a9-927c-7e17d8fb2d8d")) {
+                    bulbChar = characteristic;
+                } else if(characteristic.getUuid().toString().equals("ec958823-f26e-43a9-927c-7e17d8f32a90")) {
+                    beepChar = characteristic;
                 }
             }
         }

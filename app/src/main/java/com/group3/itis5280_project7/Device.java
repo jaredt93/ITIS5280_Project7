@@ -6,16 +6,19 @@ import java.io.Serializable;
 import java.util.Objects;
 
 public class Device implements Serializable {
-    String name, uuid, temperature;
-    Boolean connected, lightOn, beepOn;
+    String name, uuid, temperature, address;
+    Boolean connected = false;
+    Boolean lightOn = false;
+    Boolean beepOn = false;
     BluetoothDevice device;
 
     public Device() {
         // empty
     }
 
-    public Device(String name, BluetoothDevice device) {
+    public Device(String name, String address, BluetoothDevice device) {
         this.name = name;
+        this.address = address;
         this.device = device;
         uuid = "1";
         connected = false;
@@ -81,6 +84,14 @@ public class Device implements Serializable {
 
     public void setBeepOn(Boolean beepOn) {
         this.beepOn = beepOn;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
     }
 
     @Override

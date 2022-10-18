@@ -74,10 +74,16 @@ public class ControlFragment extends Fragment {
         if (device != null) {
             binding.textViewFindDevice.setText("Connected");
 
+            if (device.getLightOn()) {
+                binding.buttonLight.setText("ON");
+            } else {
+                binding.buttonLight.setText("OFF");
+            }
+
             binding.buttonLight.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    binding.buttonLight.setText("ON");
+                    mListener.pressBulbButton();
                 }
             });
 
@@ -90,7 +96,7 @@ public class ControlFragment extends Fragment {
             binding.buttonBeep.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-
+                    mListener.pressBeepButton();
                 }
             });
         } else {
