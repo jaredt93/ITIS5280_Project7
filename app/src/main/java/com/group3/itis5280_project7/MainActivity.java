@@ -119,6 +119,8 @@ public class MainActivity extends AppCompatActivity implements ControlFragment.I
         }
     }
 
+    byte[] onOff = new byte[0];
+
     @SuppressLint("MissingPermission")
     @Override
     public void pressBulbButton() {
@@ -126,9 +128,9 @@ public class MainActivity extends AppCompatActivity implements ControlFragment.I
         byte[] off = "0".getBytes(StandardCharsets.UTF_8);
 
         if (connectedDevice.getLightOn()) {
-            bulbChar.setValue("0");
+            bulbChar.setValue(off);
         } else {
-            bulbChar.setValue("0");
+            bulbChar.setValue(on);
         }
 
         gatt.writeCharacteristic(bulbChar);
@@ -336,16 +338,6 @@ public class MainActivity extends AppCompatActivity implements ControlFragment.I
                 Log.d(TAG, "onCharacteristicChanged: temp " + str );
                 connectedDevice.setTemperature(str);
                 replaceFragment(ControlFragment.newInstance(connectedDevice));
-            } else if (characteristic.getUuid().toString().equals("ec958823-f26e-43a9-927c-7e17d8f32a90")) {
-                byte[] value = characteristic.getValue();
-                String str = new String(value);
-                Log.d(TAG, "onCharacteristicChanged: BEEP " + str );
-
-                if(str.equals("1")) {
-                    connectedDevice.setBeepOn(true);
-                } else {
-                    connectedDevice.setBeepOn(false);
-                }
             }
         }
 
@@ -356,9 +348,9 @@ public class MainActivity extends AppCompatActivity implements ControlFragment.I
             if (characteristic.getUuid().toString().equals("fb959362-f26e-43a9-927c-7e17d8fb2d8d")) {
                 byte[] value = characteristic.getValue();
                 String str = new String(value);
-                Log.d(TAG, "onCharacteristicWrite: bulb " + str );
+                Log.d(TAG, "onCharacteristicWrite: bulb " + str);
 
-                if(str.equals("1")) {
+                if (str.equals("1")) {
                     connectedDevice.setLightOn(true);
                     replaceFragment(ControlFragment.newInstance(connectedDevice));
                 } else {
