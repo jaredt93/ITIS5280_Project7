@@ -5,9 +5,6 @@
 - Tom Va
 - Jared Tamulynas
 
-## Link to Youtube Channel
-[Project Demo](https://youtu.be/CvF-QhZMxes)
-
 ## Project Purpose
 This assignment focuses communicating with a smart BLE bulb that is also capable of beeping and measuring temperature.
 
